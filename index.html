@@ -14,21 +14,44 @@
       }
 
       h1{ 
-
         text-align: center;
       }
 
+      label {
+        vertical-align: top;
+        margin-right: 5px;
+      }
+
+      select,
+      input {
+        vertical-align: middle;
+      }
+
+      .field-routes {
+        float: left;
+      }
+
+      .field-realism {
+        float: left;
+      }
+
+      .field-details {
+        float: right;
+      }
+
       #map-canvas{
-        position: relative;
+        position: absolute;
+        top: 10px;
+        right: 10px;
         z-index: 9999;
-        width: 400px;
+        width: 200px;
+        height: 200px;
+        border-radius: 100px;
+        border: 3px solid #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
       }
 
       #controlpanel {
-        position:absolute;
-        width: 400px;
-        right: 0;
-        top: 0;
       }
 
       #controlpanel > div {
@@ -36,13 +59,20 @@
       }
 
       #details {
+        font-family: Menlo, Monaco, Consolas, Inconsolata, monospace;
+        font-size: 11px;
+        line-height: 14px;
         white-space: pre;
       }
 
+      .viewport {
+        height: 500px;
+      }
+
       .wrap {
+        clear: left;
         position: relative;
         width: 1000px;
-        height: 500px;
         margin: auto;
       }
 
@@ -62,35 +92,44 @@
       #pano {
         height: 100%;
       }
+
+      #footer {
+        font-family: sans-serif;
+        font-size: 13px;
+        line-height: 16px;
+        padding-top: 20px;
+      }
     </style>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDgyyPEQ6Udphw_0vIB6fQCwdl1yQ5iTQ4&sensor=false"></script>
   </head>
   <body>
     <h1>Seattle Bus Driver Simulator 2014 <span id="loading">(LOADING...)</span></h1>
     
-    <div class="wrap">
+    <div class="wrap viewport">
+      <div id="map-canvas"></div>
       <div id="pano"></div>
       <div id="cockpit"></div>
     </div>
 
     <div class="wrap">
-      <div id="map-canvas"></div>
       <div id="controlpanel">
-        <div>
-          Route <select id="routes"></select>
+        <div class="field-routes">
+          <label for="routes">Route</label>
+          <select id="routes"></select>
         </div>
-        <div>
-          Realism <input type="range" id="realism" min="0" max="1" step=".1" value=".8"/>
+        <div class="field-realism">
+          <label for="realism">Realism</label>
+          <input type="range" id="realism" min="0" max="1" step=".1" value=".8"/>
         </div>
-        <div>
-          Details
-          <div id="details"></div>
+        <div class="field-details">
+          <label>Details</label>
+          <pre id="details"></pre>
         </div>
       </div>
     </div>
-    <div class="wrap">
-      <p>Yes, you're seeing Streetview imagery based on real-time bus tracking information from KC Metro.</p>
-      <p><a href="https://github.com/exogen/bus-sim">view source on github</a>. Forked from <a href="http://github.com/jden/bus-sim">jden/bus-sim</a></p>
+    <div id="footer" class="wrap">
+      <p>You’re seeing Street View imagery based on real-time bus tracking information from King County Metro (via <a href="http://pugetsound.onebusaway.org/">OneBusAway</a>).</p>
+      <p><a href="https://github.com/exogen/bus-sim">view source on github</a> • forked from <a href="http://github.com/jden/bus-sim">jden/bus-sim</a></p>
     </div>
 
     <script>
