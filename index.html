@@ -3,7 +3,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Oakland Bus Driver Sim 2000</title>
+    <title>Seattle Bus Driver Simulator 2014</title>
     <style>
       html, body, #map-canvas {
         height: 100%;
@@ -63,10 +63,10 @@
         height: 100%;
       }
     </style>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBR8YLtRHYOBK381yao8KXGnzhFlm43SmE&sensor=false"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDgyyPEQ6Udphw_0vIB6fQCwdl1yQ5iTQ4&sensor=false"></script>
   </head>
   <body>
-    <h1>Oakland Bus Driver Sim 2000 <span id="loading">(LOADING...)</span></h1>
+    <h1>Seattle Bus Driver Simulator 2014 <span id="loading">(LOADING...)</span></h1>
     
     <div class="wrap">
       <div id="pano"></div>
@@ -77,7 +77,7 @@
       <div id="map-canvas"></div>
       <div id="controlpanel">
         <div>
-          Bus <select id="buses"></select>
+          Route <select id="routes"></select>
         </div>
         <div>
           Realism <input type="range" id="realism" min="0" max="1" step=".1" value=".8"/>
@@ -89,8 +89,8 @@
       </div>
     </div>
     <div class="wrap">
-      <p>Yes, you're seeing Streetview imagery based on real-time bus tracking information from ACTransit.</p>
-      <p><a href="https://github.com/openoakland/bus-sim">view source on github</a>. Forked from <a href="http://github.com/jden/bus-sim">jden/bus-sim</a></p>
+      <p>Yes, you're seeing Streetview imagery based on real-time bus tracking information from KC Metro.</p>
+      <p><a href="https://github.com/exogen/bus-sim">view source on github</a>. Forked from <a href="http://github.com/jden/bus-sim">jden/bus-sim</a></p>
     </div>
 
     <script>
@@ -115,16 +115,16 @@
 
       var activeBusId = 0
       var busData = {}
+
+      
+      /*
       var server = new EventSource('http://nextbus.dathub.org/_changes?include_data=true&style=sse&tail=true&live=true')
 
       server.addEventListener('data', function (e) {
-          cockpit.style.display = 'inherit';
-          loading.style.display = 'none';
           var bus = JSON.parse(e.data).data
           busData[bus.id] = bus
           console.log('Update', bus.id, bus.routeTag)
   
-          document.getElementById('buses').innerHTML += '<option id="bus'+bus.id+'" value="'+bus.id+'">' + bus.id + ' route ' + bus.routeTag + '</option>'
   
           // set the first in-service bus we find to the active bus
           if (activeBusId && activeBusId !== bus.id) { return }
@@ -132,43 +132,128 @@
   
           draw(bus)
         })
+        */
+        function loaded() {
+          cockpit.style.display = 'inherit';
+          loading.style.display = 'none';
+          var bus = REFERENCES.buses[0],
+              route;
 
+          for (var i = 0; i < REFERENCES.routeList.length; i++) {
+            route = REFERENCES.routeList[i];
+            if (route.description) {
+              document.getElementById('routes').innerHTML += '<option id="route'+route.id+'" value="'+route.id+'">' + route.shortName + ': ' + route.description + '</option>'
+            }
+          }
 
+          activeBusId = bus.id;
+          draw(bus);
+        }
 
         function draw(bus) {
           console.log('draw', bus)
-          var pos = new google.maps.LatLng(+bus.lat, +bus.lon)
+          var pos = new google.maps.LatLng(
+              +bus.tripStatus.position.lat,
+              +bus.tripStatus.position.lon)
 
-          panorama.setPosition(pos)
-          panorama.setPov({
-                heading: +bus.heading,
-                pitch: 10
-              })
+          var heading = (360 + (+bus.tripStatus.orientation - 90)) % 360;
+
+          panorama.setPosition(pos);
+          panorama.setPov({ heading: heading, pitch: 10 });
 
           // prevent greyness
-          panorama.setVisible(true)
+          panorama.setVisible(true);
 
           map.panTo(pos)
 
-          document.getElementById('details').textContent = JSON.stringify(bus,null,2)
+          var trip = REFERENCES.trips[bus.tripStatus.activeTripId];
+          document.getElementById('routes').value = trip.routeId;
+          document.getElementById('details').textContent = JSON.stringify(bus.tripStatus,null,2);
 
         }
 
+        loaded();
+
         document.getElementById('realism').addEventListener('input', function () {
-          cockpit.style.opacity = document.getElementById('realism').value
+          cockpit.style.opacity = document.getElementById('realism').value;
         })
 
-        document.getElementById('buses').addEventListener('change', function () {
-          activeBusId = document.getElementById('buses').value
-          draw(busData[activeBusId])
+        document.getElementById('routes').addEventListener('change', function () {
+          var route = document.getElementById('routes').value;
+          for (var i = 0; i < REFERENCES.buses.length; i++) {
+            var bus = REFERENCES.buses[i],
+                tripId = bus.tripStatus.activeTripId;
+                trip = REFERENCES.trips[tripId];
+            if (trip.routeId === route) {
+              draw(bus);
+              return;
+            }
+          }
         })
-
 
       }
 
       google.maps.event.addDomListener(window, 'load', initialize);
 
     </script>
+    <script>
+      var REFERENCES;
+
+      function arrayToObject(arr) {
+        var obj = {};
+        for (var i = 0; i < arr.length; i++) {
+          obj[arr[i].id] = arr[i];
+        }
+        return obj;
+      }
+
+      window.updateBuses = function(response) {
+        REFERENCES = response.data.references;
+        REFERENCES.trips = arrayToObject(REFERENCES.trips);
+        var routeList = REFERENCES.routes;
+        REFERENCES.routes = arrayToObject(REFERENCES.routes);
+        REFERENCES.stops = arrayToObject(REFERENCES.stops);
+
+        var buses = [],
+            routeIds = {},
+            bus,
+            trip;
+
+        for (var i = 0; i < response.data.list.length; i++) {
+          bus = response.data.list[i];
+          if (bus.lastUpdateTime && bus.lastUpdateTime < response.currentTime) {
+            if (bus.tripStatus) {
+              trip = REFERENCES.trips[bus.tripStatus.activeTripId];
+              routeIds[trip.routeId] = 1;
+              buses.push(bus);
+            }
+          }
+        }
+
+        buses.sort(function(a, b) {
+            return b.lastUpdateTime - a.lastUpdateTime;
+        });
+
+        REFERENCES.routeList = [];
+        for (var i = 0; i < routeList.length; i++) {
+          if (routeIds[routeList[i].id]) {
+            REFERENCES.routeList.push(routeList[i]);
+          }
+        }
+
+        REFERENCES.routeList.sort(function(a, b) {
+            if (!isNaN(a.shortName) && !isNaN(b.shortName)) {
+              return a.shortName - b.shortName;
+            }
+            if (a.shortName < b.shortName) return -1;
+            if (a.shortName > b.shortName) return 1;
+            return 0;
+        });
+
+        REFERENCES.buses = buses;
+      };
+    </script>
+    <script src="http://api.onebusaway.org/api/where/vehicles-for-agency/1.json?key=TEST&callback=updateBuses"></script>
   </body>
 </html>
 

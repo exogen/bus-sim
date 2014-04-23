@@ -1,7 +1,7 @@
 bus-sim
 =======
 
-Oakland Bus Driver Sim 2000
+Seattle Bus Driver Simulator 2014
 
 forked from https://github.com/jden/bus-sim
 
