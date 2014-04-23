@@ -94,11 +94,14 @@
     </div>
 
     <script>
-    var cockpit = document.getElementById('cockpit')
-    var loading = document.getElementById('loading')
+    var cockpit = document.getElementById('cockpit');
+    var loading = document.getElementById('loading');
 
       function initialize() {
         var nullisland = new google.maps.LatLng(0,0);
+
+        var activeBusId,
+            busData;
 
         map = new google.maps.Map(
             document.getElementById('map-canvas'), {zoom: 14, center: nullisland});
@@ -112,27 +115,24 @@
         panorama = new  google.maps.StreetViewPanorama(document.getElementById('pano'),panoramaOptions);
         map.setStreetView(panorama);
 
+        function fetchBusStatus() {
+          var firstScript = document.getElementsByTagName('script')[0],
+              script = document.createElement('script');
+          script.src = "http://api.pugetsound.onebusaway.org/api/where/trip-for-vehicle/" + activeBusId + ".json?key=TEST&callback=updateBusStatus";
+          script.async = true;
+          firstScript.parentNode.insertBefore(script, firstScript);
+        }
 
-      var activeBusId = 0
-      var busData = {}
+        window.updateBusStatus = function(response) {
+          if (response.code == 200) {
+            var trip = response.data.entry;
+            console.log(busData.tripStatus.activeTripId, trip.status.activeTripId);
+            if (trip.status.activeTripId != busData.tripStatus.activeTripId) return;
+            busData.tripStatus = trip.status;
+            draw(busData);
+          }
+        };
 
-      
-      /*
-      var server = new EventSource('http://nextbus.dathub.org/_changes?include_data=true&style=sse&tail=true&live=true')
-
-      server.addEventListener('data', function (e) {
-          var bus = JSON.parse(e.data).data
-          busData[bus.id] = bus
-          console.log('Update', bus.id, bus.routeTag)
-  
-  
-          // set the first in-service bus we find to the active bus
-          if (activeBusId && activeBusId !== bus.id) { return }
-          activeBusId = bus.id
-  
-          draw(bus)
-        })
-        */
         function loaded() {
           cockpit.style.display = 'inherit';
           loading.style.display = 'none';
@@ -146,11 +146,13 @@
             }
           }
 
-          activeBusId = bus.id;
           draw(bus);
         }
 
         function draw(bus) {
+          activeBusId = bus.vehicleId;
+          busData = bus;
+
           console.log('draw', bus)
           var pos = new google.maps.LatLng(
               +bus.tripStatus.position.lat,
@@ -170,6 +172,7 @@
           document.getElementById('routes').value = trip.routeId;
           document.getElementById('details').textContent = JSON.stringify(bus.tripStatus,null,2);
 
+          setTimeout(fetchBusStatus, 9000);
         }
 
         loaded();
