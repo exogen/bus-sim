@@ -101,7 +101,8 @@
         var nullisland = new google.maps.LatLng(0,0);
 
         var activeBusId,
-            busData;
+            busData,
+            timeout;
 
         map = new google.maps.Map(
             document.getElementById('map-canvas'), {zoom: 14, center: nullisland});
@@ -158,7 +159,7 @@
               +bus.tripStatus.position.lat,
               +bus.tripStatus.position.lon)
 
-          var heading = (360 + (+bus.tripStatus.orientation - 90)) % 360;
+          var heading = (360 + (90 - bus.tripStatus.orientation)) % 360;
 
           panorama.setPosition(pos);
           panorama.setPov({ heading: heading, pitch: 10 });
@@ -172,7 +173,8 @@
           document.getElementById('routes').value = trip.routeId;
           document.getElementById('details').textContent = JSON.stringify(bus.tripStatus,null,2);
 
-          setTimeout(fetchBusStatus, 9000);
+          clearTimeout(timeout);
+          timeout = setTimeout(fetchBusStatus, 9000);
         }
 
         loaded();
